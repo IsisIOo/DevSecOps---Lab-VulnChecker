@@ -108,6 +108,7 @@ pipeline {
         stage('Start Test DB') {
             steps {
                 sh '''
+                    docker compose -f vulncheckerbackend/compose.yaml down -v || true
                     docker compose -f vulncheckerbackend/compose.yaml up -d postgres
                     docker network connect vulncheckerbackend_default vuln-jenkins 2>/dev/null || true
                     POSTGRES_ID=$(docker compose -f vulncheckerbackend/compose.yaml ps -q postgres)
@@ -148,7 +149,7 @@ pipeline {
             post {
                 always {
                     junit allowEmptyResults: true, testResults: 'vulncheckerbackend/target/surefire-reports/*.xml'
-                    sh 'docker compose -f vulncheckerbackend/compose.yaml down'
+                    sh 'docker compose -f vulncheckerbackend/compose.yaml down -v'
                 }
             }
         }
