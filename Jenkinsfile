@@ -105,7 +105,6 @@ pipeline {
             }
         }
 
-        /*
         stage('Unit Tests') {
             when { expression { return params.SKIP_JUNIT != 'true' } }
             steps {
@@ -119,7 +118,6 @@ pipeline {
                 }
             }
         }
-        */
 
         // Rutas: repo raíz = workspace; backend=${WORKSPACE}/vulncheckerbackend (pom.xml), frontend=${WORKSPACE}/frontend (package.json); salida=/jenkins-reports/latest/... (montaje ./jenkins-reports en compose).
         // El CLI de Dependency Check escanea JARs en disco; no resuelve pom.xml. Por eso copiamos las dependencias Maven a target/dependency antes de escanear el backend.
