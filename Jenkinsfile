@@ -121,11 +121,10 @@ pipeline {
         }
         */
 
-        // Disabled temporarily: block comments break on patterns like */ in strings.
-        if (false) {
         // Rutas: repo raíz = workspace; backend=${WORKSPACE}/vulncheckerbackend (pom.xml), frontend=${WORKSPACE}/frontend (package.json); salida=/jenkins-reports/latest/... (montaje ./jenkins-reports en compose).
         // El CLI de Dependency Check escanea JARs en disco; no resuelve pom.xml. Por eso copiamos las dependencias Maven a target/dependency antes de escanear el backend.
         stage('OWASP Dependency Check') {
+            when { expression { return false } }
             when { expression { return params.SKIP_DEPENDENCY_CHECK != 'true' } }
             steps {
                 dir('vulncheckerbackend') {
@@ -243,7 +242,6 @@ pipeline {
                 }
             }
         }
-        }
 
         // SonarQube 9+ requiere token. Credencial id 'sonarqube-token'; System → SonarQube servers → el nombre debe coincidir con el parámetro SONAR_SERVER_NAME.
         stage('SonarQube Analysis') {
@@ -268,7 +266,6 @@ pipeline {
             }
         }
 
-        /*
         stage('Build Docker Images') {
             steps {
                 sh """
@@ -278,6 +275,7 @@ pipeline {
         }
 
         stage('Container Image Scan (Trivy)') {
+            when { expression { return false } }
             steps {
                 sh """
                     docker run --rm \
@@ -329,7 +327,7 @@ pipeline {
         }
 
         stage('DAST - OWASP ZAP') {
-            when { expression { return params.SKIP_ZAP != 'true' } }
+            when { expression { return false } }
             steps {
                 sh '''
                     echo "Comprobando que el backend esté listo (app ya levantada con docker compose up --build)..."
@@ -370,7 +368,6 @@ pipeline {
                 }
             }
         }
-        */
     }
 
     post {
