@@ -125,7 +125,6 @@ pipeline {
         // El CLI de Dependency Check escanea JARs en disco; no resuelve pom.xml. Por eso copiamos las dependencias Maven a target/dependency antes de escanear el backend.
         stage('OWASP Dependency Check') {
             when { expression { return false } }
-            when { expression { return params.SKIP_DEPENDENCY_CHECK != 'true' } }
             steps {
                 dir('vulncheckerbackend') {
                     sh 'chmod +x mvnw && ./mvnw dependency:copy-dependencies -DoutputDirectory=target/dependency -q'
