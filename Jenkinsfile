@@ -109,6 +109,7 @@ pipeline {
             steps {
                 sh '''
                     docker compose -f vulncheckerbackend/compose.yaml up -d postgres
+                    docker network connect vulncheckerbackend_default vuln-jenkins 2>/dev/null || true
                     POSTGRES_ID=$(docker compose -f vulncheckerbackend/compose.yaml ps -q postgres)
                     if [ -z "$POSTGRES_ID" ]; then
                         echo "Postgres container not found"
@@ -132,10 +133,10 @@ pipeline {
             when { expression { return params.SKIP_JUNIT != 'true' } }
             steps {
                 withEnv([
-                    'SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/mydatabase',
+                    'SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/mydatabase',
                     'SPRING_DATASOURCE_USERNAME=myuser',
                     'SPRING_DATASOURCE_PASSWORD=secret',
-                    'SPRING_FLYWAY_URL=jdbc:postgresql://host.docker.internal:5432/mydatabase',
+                    'SPRING_FLYWAY_URL=jdbc:postgresql://postgres:5432/mydatabase',
                     'SPRING_FLYWAY_USER=myuser',
                     'SPRING_FLYWAY_PASSWORD=secret'
                 ]) {
