@@ -110,7 +110,6 @@ pipeline {
                 sh '''
                     docker compose -f vulncheckerbackend/compose.yaml down -v || true
                     docker compose -f vulncheckerbackend/compose.yaml up -d postgres
-                    docker network connect vulncheckerbackend_default vuln-jenkins 2>/dev/null || true
                     POSTGRES_ID=$(docker compose -f vulncheckerbackend/compose.yaml ps -q postgres)
                     if [ -z "$POSTGRES_ID" ]; then
                         echo "Postgres container not found"
@@ -127,6 +126,22 @@ pipeline {
                     echo "Postgres no estuvo listo a tiempo"
                     exit 1
                 '''
+                script {
+                    env.TEST_DB_HOST = sh(
+                        returnStdout: true,
+                        script: '''
+                            POSTGRES_ID=$(docker compose -f vulncheckerbackend/compose.yaml ps -q postgres)
+                            if [ -z "$POSTGRES_ID" ]; then
+                                exit 1
+                            fi
+                            NET=$(docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{println $k}}{{end}}' "$POSTGRES_ID" | head -n1)
+                            if [ -n "$NET" ]; then
+                                docker network connect "$NET" vuln-jenkins 2>/dev/null || true
+                            fi
+                            docker inspect -f '{{.Name}}' "$POSTGRES_ID" | sed 's#^/##'
+                        '''
+                    ).trim()
+                }
             }
         }
 
@@ -134,10 +149,10 @@ pipeline {
             when { expression { return params.SKIP_JUNIT != 'true' } }
             steps {
                 withEnv([
-                    'SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/mydatabase',
+                    'SPRING_DATASOURCE_URL=jdbc:postgresql://${TEST_DB_HOST}:5432/mydatabase',
                     'SPRING_DATASOURCE_USERNAME=myuser',
                     'SPRING_DATASOURCE_PASSWORD=secret',
-                    'SPRING_FLYWAY_URL=jdbc:postgresql://postgres:5432/mydatabase',
+                    'SPRING_FLYWAY_URL=jdbc:postgresql://${TEST_DB_HOST}:5432/mydatabase',
                     'SPRING_FLYWAY_USER=myuser',
                     'SPRING_FLYWAY_PASSWORD=secret'
                 ]) {
