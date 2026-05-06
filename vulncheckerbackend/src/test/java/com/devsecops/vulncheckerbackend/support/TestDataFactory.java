@@ -25,6 +25,7 @@ public final class TestDataFactory {
         user.setMaternalLastName("Usach");
         user.setEmail("admin.seguridad@usach.cl");
         user.setPassword("admin123");
+        user.setActive(true);
         return user;
     }
 

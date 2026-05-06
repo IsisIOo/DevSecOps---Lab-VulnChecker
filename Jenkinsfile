@@ -105,16 +105,49 @@ pipeline {
             }
         }
 
+        stage('Start Test DB') {
+            steps {
+                sh '''
+                    docker compose -f vulncheckerbackend/compose.yaml up -d postgres
+                    POSTGRES_ID=$(docker compose -f vulncheckerbackend/compose.yaml ps -q postgres)
+                    if [ -z "$POSTGRES_ID" ]; then
+                        echo "Postgres container not found"
+                        exit 1
+                    fi
+                    for i in $(seq 1 20); do
+                        if docker exec "$POSTGRES_ID" pg_isready -U myuser -d mydatabase >/dev/null 2>&1; then
+                            echo "Postgres listo."
+                            exit 0
+                        fi
+                        echo "Esperando Postgres... ($i/20)"
+                        sleep 3
+                    done
+                    echo "Postgres no estuvo listo a tiempo"
+                    exit 1
+                '''
+            }
+        }
+
         stage('Unit Tests') {
             when { expression { return params.SKIP_JUNIT != 'true' } }
             steps {
-                dir('vulncheckerbackend') {
-                    sh 'chmod +x mvnw && ./mvnw test -q'
+                withEnv([
+                    'SPRING_DATASOURCE_URL=jdbc:postgresql://host.docker.internal:5432/mydatabase',
+                    'SPRING_DATASOURCE_USERNAME=myuser',
+                    'SPRING_DATASOURCE_PASSWORD=secret',
+                    'SPRING_FLYWAY_URL=jdbc:postgresql://host.docker.internal:5432/mydatabase',
+                    'SPRING_FLYWAY_USER=myuser',
+                    'SPRING_FLYWAY_PASSWORD=secret'
+                ]) {
+                    dir('vulncheckerbackend') {
+                        sh 'chmod +x mvnw && ./mvnw test -q'
+                    }
                 }
             }
             post {
                 always {
                     junit allowEmptyResults: true, testResults: 'vulncheckerbackend/target/surefire-reports/*.xml'
+                    sh 'docker compose -f vulncheckerbackend/compose.yaml down'
                 }
             }
         }
